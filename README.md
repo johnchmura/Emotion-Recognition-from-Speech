@@ -8,6 +8,11 @@ A Python toolkit for training and evaluating **Hidden Markov Models** (HMMs) on 
 This package provides end‑to‑end data download, parsing, preprocessing, feature extraction, model training and evaluation via a single CLI entrypoint `ser`.
 
 ---
+## HMM Architecture
+
+Below is a schematic of the hidden Markov model: each circle is a hidden state, arrows are transition probabilities, and the rectangular boxes are MFCC‐based observations emitted by each state.
+
+![HMM Architecture](assets/hmm_architecture.png)
 
 ## Installation
 
