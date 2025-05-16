@@ -12,7 +12,7 @@ This package provides end‑to‑end data download, parsing, preprocessing, feat
 
 Below is a schematic of the hidden Markov model: each circle is a hidden state, arrows are transition probabilities, and the rectangular boxes are MFCC‐based observations emitted by each state.
 
-![HMM Architecture](assets/hmm_architecture.png)
+![HMM Architecture](assets/hmm_flow.png)
 
 ## Installation
 
