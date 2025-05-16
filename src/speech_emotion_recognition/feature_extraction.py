@@ -1,118 +1,75 @@
+import random
+from pathlib import Path
+import numpy as np
 import soundfile as sf
 import librosa
-import numpy as np
-import random
-import numpy as np
-import matplotlib.pyplot as plt
-from pathlib import Path
 
-def preprocess_audio(path, target_sr=16000, top_db=40, eps=1e-9, pre_emph=0.97):
+def preprocess_audio(path: str,target_sr: int = 16_000,eps: float = 1e-9,pre_emphasis: float = 0.97) -> np.ndarray:
     """
-    Load audio from path, convert to mono, remove DC offset, resample
-    to target_sr, trim leading/trailing silence, and perform max-abs normalization.
-    Returns:
-      audio: 1D numpy array, peak-normalized in [-1, 1]
-      sr: sampling rate after resampling (target_sr)
+    Load, mono‑mix, DC‑shift, pre‑emphasize, resample, and normalize a WAV.
+    Returns a 1D float array in [-1,1].
     """
     audio, orig_sr = sf.read(path)
-    # Convert to mono
+    # mono
     if audio.ndim > 1:
         audio = audio.mean(axis=1)
-    # Remove DC offset
+    # zero‑mean
     audio = audio - np.mean(audio)
-
-    audio = np.concatenate(([audio[0]], audio[1:] - pre_emph * audio[:-1]))
-
-    # Resample to target_sr
+    # pre‑emphasis
+    audio = np.concatenate(([audio[0]], audio[1:] - pre_emphasis * audio[:-1]))
+    # resample
     if orig_sr != target_sr:
         audio = librosa.resample(audio, orig_sr=orig_sr, target_sr=target_sr)
-    # Peak-normalize
+    # peak normalize
     peak = np.max(np.abs(audio))
-    audio = audio / (peak + eps)
-    #audio, _ = librosa.effects.trim(audio, top_db=top_db)
-    max_len = int(2.4 * target_sr)
-    #audio_fixed = pad_or_truncate(audio, max_len)
-    return audio, target_sr
+    return audio / (peak + eps)
 
 
-def add_noise(audio, noise_factor=0.005):
-    """Add Gaussian noise to the signal."""
+def add_noise(audio: np.ndarray, noise_factor: float = 0.005) -> np.ndarray:
+    """Add Gaussian noise to a signal and re‑normalize."""
     noise = np.random.randn(len(audio))
-    augmented = audio + noise_factor * noise
-    return augmented / np.max(np.abs(augmented))
+    aug   = audio + noise_factor * noise
+    return aug / (np.max(np.abs(aug)) + 1e-9)
 
-def stretch(audio, rate):
-    """Time-stretch the audio by a factor `rate`."""
-    return librosa.effects.time_stretch(audio, rate=rate)
 
-def shift(audio, sr, n_steps):
-    """Pitch-shift the audio by `n_steps` (in semitones)."""
+def time_stretch(audio: np.ndarray, rate: float) -> np.ndarray:
+    """Speed up or slow down without changing pitch."""
+    return librosa.effects.time_stretch(audio, rate)
+
+
+def pitch_shift(audio: np.ndarray, sr: int, n_steps: float) -> np.ndarray:
+    """Shift pitch by n_steps semitones."""
     return librosa.effects.pitch_shift(audio, sr=sr, n_steps=n_steps)
 
-def pad_or_truncate(audio, max_len):
-    """Pad with zeros or truncate to ensure audio length == max_len."""
-    if len(audio) > max_len:
-        return audio[:max_len]
-    else:
-        return np.pad(audio, (0, max_len - len(audio)), mode='constant')
 
-def augment_audio(audio, sr,noise_prob=0.5, noise_factor=0.005,stretch_prob=0.5, stretch_range=(0.9, 1.1),pitch_prob=0.5, pitch_steps=(-2, 2)):
+def augment_audio(audio: np.ndarray,sr: int,noise_prob: float = 0.5,noise_factor: float = 0.005,stretch_prob: float = 0.5,
+    stretch_range: tuple[float,float] = (0.9, 1.1),pitch_prob: float = 0.5,pitch_steps: tuple[float,float] = (-2, 2)) -> np.ndarray:
     """
-    Randomly apply augmentations:
-      - Gaussian noise
-      - Time-stretch
-      - Pitch-shift
-    Each with its own probability.
+    Randomly apply noise, time‑stretch, and/or pitch‑shift to an utterance.
     """
     aug = audio.copy()
     if random.random() < noise_prob:
         aug = add_noise(aug, noise_factor)
     if random.random() < stretch_prob:
         rate = random.uniform(*stretch_range)
-        aug = stretch(aug, rate)
+        aug = time_stretch(aug, rate)
     if random.random() < pitch_prob:
         steps = random.uniform(*pitch_steps)
-        aug = shift(aug, sr, steps)
+        aug = pitch_shift(aug, sr, steps)
     return aug
 
 
-def extract_mfcc(path, sr=16000, n_mfcc=13, frame_len=0.025, hop_len=0.010, cmvn_eps=1e-9):
+def extract_features(wav_path: Path,sr: int = 16_000,n_mfcc: int = 13,frame_len: float = 0.025,hop_len: float = 0.010,n_mels: int = 40,
+    cmvn_eps: float = 1e-9) -> np.ndarray:
     """
-    Extract MFCC + delta + delta-delta from a WAV file and apply CMVN.
-    Returns:
-      feats: np.ndarray of shape (n_frames, 3 * n_mfcc), zero-mean & unit-variance per feature.
+    Load a WAV and compute MFCC + delta + delta‑delta, then apply
+    cepstral mean‑variance normalization (per utterance).
+    Returns a (n_frames, 3*n_mfcc) array.
     """
-    audio, _ = sf.read(path)
-    
-    mfcc = librosa.feature.mfcc(
-        y=audio,
-        sr=sr,
-        n_mfcc=n_mfcc,
-        n_fft=int(sr * frame_len),
-        hop_length=int(sr * hop_len),
-        htk=True
-    )
-    
-    # Compute first and second derivatives
-    delta  = librosa.feature.delta(mfcc, order=1)
-    delta2 = librosa.feature.delta(mfcc, order=2)
-    
-    coeffs = np.vstack([mfcc, delta, delta2])
-    
-    feats = coeffs.T
-    
-    mean = np.mean(feats, axis=0, keepdims=True)
-    std  = np.std(feats,  axis=0, keepdims=True)
-    feats_cmvn = (feats - mean) / (std + cmvn_eps)
-    
-    return feats_cmvn
-
-def extract_feats(wav_path: Path, sr: int, n_mfcc: int,
-                   frame_len: float, hop_len: float,
-                   n_mels: int) -> np.ndarray:
     audio, sample_rate = sf.read(str(wav_path))
     if audio.ndim > 1:
         audio = audio.mean(axis=1)
+
     mfcc = librosa.feature.mfcc(
         y=audio,
         sr=sample_rate,
@@ -120,21 +77,28 @@ def extract_feats(wav_path: Path, sr: int, n_mfcc: int,
         n_fft=int(sample_rate * frame_len),
         hop_length=int(sample_rate * hop_len),
         n_mels=n_mels,
-        fmax=sample_rate/2,
+        fmax=sample_rate / 2,
         htk=True
     )
     d1 = librosa.feature.delta(mfcc, order=1)
     d2 = librosa.feature.delta(mfcc, order=2)
     feats = np.vstack([mfcc, d1, d2]).T
-    mu    = feats.mean(axis=0, keepdims=True)
-    sigma = feats.std(axis=0, keepdims=True) + 1e-9
-    return (feats - mu) / sigma
 
-def preprocess_all(raw_base: Path, preproc_base: Path, sr: int):
+    # CMVN
+    mean = feats.mean(axis=0, keepdims=True)
+    std  = feats.std(axis=0, keepdims=True) + cmvn_eps
+    return (feats - mean) / std
+
+
+def preprocess_all(raw_base: Path, preproc_base: Path, sr: int = 16_000) -> None:
+    """
+    Walk `raw_base`, apply `preprocess_audio` to each WAV, and write
+    the result under `preproc_base`, preserving subdirectories.
+    """
     preproc_base.mkdir(parents=True, exist_ok=True)
-    for wav in Path(raw_base).rglob("*.wav"):
-        audio, _ = preprocess_audio(str(wav), target_sr=sr)
+    for wav in raw_base.rglob("*.wav"):
         out_path = preproc_base / wav.relative_to(raw_base)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        sf.write(out_path, audio, sr, subtype="PCM_16")
-    print(f"Preprocessed audio written under {preproc_base}")
+        audio = preprocess_audio(str(wav), target_sr=sr)
+        sf.write(str(out_path), audio, sr, subtype="PCM_16")
+    print(f"Preprocessed audio now in {preproc_base}")
