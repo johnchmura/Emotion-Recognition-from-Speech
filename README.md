@@ -5,7 +5,7 @@ A Python toolkit for training and evaluating **Hidden Markov Models** (HMMs) on 
 - **Emotion Recognition** (neutral, calm, happy, sad, angry, fearful, disgust, surprised)  
 - **Vocal‑Channel Classification** (speech vs. song)
 
-This package provides end‑to‑end data parsing, preprocessing, feature extraction, model training, and evaluation via a simple Command‑Line Interface (`ser`).
+This package provides end‑to‑end data download, parsing, preprocessing, feature extraction, model training and evaluation via a single CLI entrypoint `ser`.
 
 ---
 
@@ -33,7 +33,7 @@ This package provides end‑to‑end data parsing, preprocessing, feature extrac
 
 ## Configuration
 
-All paths and hyperparameters live in `config.toml` at the project root:
+All paths, URLs, and hyperparameters live in `config.toml` at the project root:
 
 ```toml
 [paths]
@@ -41,6 +41,10 @@ raw_data_dir     = "data/Audio_Speech_Actors_01-24"
 preproc_dir      = "data/preprocessed"
 cleaned_csv      = "data/cleaned_data.csv"
 models_dir       = "models"
+
+[download]
+speech_url = "https://zenodo.org/record/.../Audio_Speech_Actors_01-24.zip?download=1"
+song_url   = "https://zenodo.org/record/.../Audio_Song_Actors_01-24.zip?download=1"
 
 [mfcc]
 sr        = 16000
@@ -54,95 +58,93 @@ n_states = 5
 n_iter   = 30
 ```
 
-Feel free to tweak sampling rate, MFCC settings, or HMM states and iterations.
+Adjust any of these settings as needed.
 
 ---
 
 ## Usage
 
-After installation, you have a single CLI entrypoint:  
+After installation, use the `ser` CLI:
 
 ```bash
-$ ser --help
+ser --help
 ```
 
-### 1. Preprocess
+### 1. Download
 
-Parse raw RAVDESS filenames into a metadata CSV and resample + normalize all WAVs:
+Fetch and unzip the RAVDESS archives:
+
+```bash
+# Download both speech and song (default)
+ser download
+
+# Download only the speech dataset
+ser download --type speech
+
+# Download only the song dataset
+ser download -t song
+```
+
+Files will be extracted under `paths.raw_data_dir`.
+
+### 2. Preprocess
+
+Parse filenames to metadata and preprocess audio:
 
 ```bash
 ser preprocess
 ```
 
-- **Output**:  
-  - `data/cleaned_data.csv` (one row per utterance with parsed fields)  
-  - `data/preprocessed/...` (mono 16 kHz, pre‑emphasized, normalized WAVs)
+Outputs:
 
-### 2. Train
+- `data/cleaned_data.csv`  
+- `data/preprocessed/...` (16 kHz, pre‑emphasized, normalized WAVs)
 
-Train HMMs in one of two modes:
+### 3. Train
+
+Train HMMs:
 
 ```bash
-# Emotion models (one HMM per emotion)
+# Emotion models
 ser train --mode emotion
 
-# Vocal‑channel models (one HMM per channel: speech vs. song)
+# Vocal‑channel models (speech vs. song)
 ser train --mode vocal
 ```
 
-Trained model files will be saved under:
+Saved under `models/emotion/` and `models/vocal/`.
 
-```
-models/
-├── emotion/
-│   ├── angry.pkl
-│   ├── calm.pkl
-│   └── … 
-└── vocal/
-    ├── speech.pkl
-    └── song.pkl
-```
+### 4. Evaluate
 
-### 3. Evaluate
-
-Evaluate held‑out performance and plot a confusion matrix:
+Evaluate and display confusion matrices:
 
 ```bash
-# Emotion recognition evaluation
+# Emotion recognition
 ser eval --mode emotion
 
-# Vocal-channel evaluation
+# Vocal‑channel
 ser eval --mode vocal
 ```
 
 ---
 
-## Model Methodology
+## 🔍 Methodology
 
-1. **Filename Parsing**  
-   - RAVDESS filenames (e.g. `03-01-06-02-02-02-15.wav`) are split into fields:  
-     modality, vocal channel, emotion, intensity, statement, repetition, actor  
-   - Stored in `data/cleaned_data.csv`.
+1. **Filename Parsing**:  
+   Extract metadata from RAVDESS filenames into `cleaned_data.csv`.
 
-2. **Preprocessing**  
-   - **Mono conversion**, **DC‑offset removal**, **pre‑emphasis** (α=0.97)  
-   - **Resampling** to 16 kHz, **peak normalization**  
-   - Silence trimming is optional (controlled in code).
+2. **Preprocessing**:  
+   Mono‑mix, DC‑offset remove, pre‑emphasis, resample to 16 kHz, peak normalize.
 
-3. **Feature Extraction**  
-   - **MFCCs** (13 coefficients) computed on 25 ms frames with 10 ms hop  
-   - **Deltas** & **delta‑deltas** stacked → 3×13 features per frame  
-   - **Cepstral Mean–Variance Normalization** per utterance
+3. **Feature Extraction**:  
+   MFCCs (13) + delta + delta‑delta → stacked → CMVN.
 
-4. **Hidden Markov Models**  
-   - One **GaussianHMM** (diagonal covariance) per class  
-   - Trained with **EM** for a fixed number of states (configurable)  
-   - **Emotion HMMs** use a stratified train/test split by emotion  
-   - **Vocal HMMs** use a leave‑actors‑out scheme for robust generalization  
+4. **HMMs**:  
+   - **Emotion**: stratified split by emotion  
+   - **Vocal**: leave‑actors‑out split  
 
-5. **Evaluation**  
-   - Log‑likelihood scoring on test sequences  
-   - **Confusion matrix** and **overall accuracy** metrics  
+5. **Evaluation**:  
+   Log‑likelihood scoring → confusion matrix & accuracy.
 
 ---
 
@@ -150,24 +152,23 @@ ser eval --mode vocal
 
 ```
 speech_emotion_recognition/
-├── setup.py                 # setuptools install script
-├── config.toml              # project & model configuration
+├── setup.py
+├── config.toml
 ├── src/
 │   └── speech_emotion_recognition/
 │       ├── __init__.py
-│       ├── ser.py           # CLI entrypoint
-│       ├── data_parser.py   # filename → metadata
-│       ├── feature_extraction.py  # audio preprocess
-│       ├── train.py         # train_emotion_hmms & train_vocal_hmms
-│       └── evaluate.py      # evaluate_emotion_hmms & evaluate_vocal_hmms
-└── data/                    # raw & preprocessed data (not committed)
+│       ├── ser.py
+│       ├── data_download.py
+│       ├── data_parser.py
+│       ├── feature_extraction.py
+│       ├── train.py
+│       └── evaluate.py
+└── data/  (git‑ignored)
 ```
 
 ---
 
 ## Testing
-
-Use pytest for unit tests:
 
 ```bash
 pip install pytest
@@ -178,4 +179,5 @@ pytest
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License. See [LICENSE](LICENSE) for details.
+```
