@@ -1,5 +1,3 @@
-Thought for a couple of seconds
-
 <!-- README.md -->
 
 # Speech Emotion & Vocal‑Channel Recognition
