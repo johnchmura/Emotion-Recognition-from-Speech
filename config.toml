@@ -1,0 +1,16 @@
+[paths]
+raw_data_dir     = "data/Audio_Speech_Actors_01-24"
+preproc_dir      = "data/preprocessed"
+cleaned_csv      = "data/cleaned_data.csv"
+models_dir       = "models"
+
+[hmm]
+n_states = 5
+n_iter   = 30
+
+[mfcc]
+sr        = 16000
+n_mfcc    = 13
+frame_len = 0.025
+hop_len   = 0.010
+n_mels    = 40

@@ -77,18 +77,15 @@ def parse_ravdess_filename(stem: str):
         "Actor": parts[6],
     }
 
-BASE = Path("data/Audio_Speech_Actors_01-24")
-records = []
-
-for wav in BASE.rglob("*.wav"):
-    try:
+def parse_all(raw_base: Path, cleaned_csv: Path):
+    records = []
+    for wav in Path(raw_base).rglob("*.wav"):
         meta = parse_ravdess_filename(wav.stem)
         meta["File Path"] = str(wav)
         records.append(meta)
-    except ValueError as e:
-        print(f"Skipping {wav.name}: {e}")
-
-df = pd.DataFrame.from_records(records,
-    columns=["File Path","Modality","Vocal Channel","Emotion","Emotional Intensity","Statement","Repetition","Actor"])
-df.to_csv("data/cleaned_data.csv", index=False)
-print(df)
+    df = pd.DataFrame.from_records(records, columns=[
+        "File Path","Modality","Vocal Channel","Emotion",
+        "Emotional Intensity","Statement","Repetition","Actor"
+    ])
+    df.to_csv(cleaned_csv, index=False)
+    print(f"Wrote cleaned metadata to {cleaned_csv}")

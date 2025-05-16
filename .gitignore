@@ -1,2 +1,7 @@
 *.wav
 *.Identifier
+*.pyc
+*.pkl
+*PKG-INFO
+*.egg-info
+*.egg
