@@ -5,31 +5,9 @@ import librosa
 import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from .feature_extraction import extract_feats
+from .feature_extraction import extract_features
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score
 import joblib
-
-def extract_feats(wav_path: Path, sr: int, n_mfcc: int,
-                   frame_len: float, hop_len: float, n_mels: int) -> np.ndarray:
-    audio, sample_rate = sf.read(str(wav_path))
-    if audio.ndim > 1:
-        audio = audio.mean(axis=1)
-    mfcc = librosa.feature.mfcc(
-        y=audio,
-        sr=sample_rate,
-        n_mfcc=n_mfcc,
-        n_fft=int(sample_rate * frame_len),
-        hop_length=int(sample_rate * hop_len),
-        n_mels=n_mels,
-        fmax=sample_rate/2,
-        htk=True
-    )
-    d1 = librosa.feature.delta(mfcc, order=1)
-    d2 = librosa.feature.delta(mfcc, order=2)
-    feats = np.vstack([mfcc, d1, d2]).T
-    mu    = feats.mean(axis=0, keepdims=True)
-    sigma = feats.std(axis=0, keepdims=True) + 1e-9
-    return (feats - mu) / sigma
 
 def evaluate_emotion_hmms(cfg: dict):
     """
@@ -60,7 +38,7 @@ def evaluate_emotion_hmms(cfg: dict):
     y_true, y_pred = [], []
     for _, row in test_df.iterrows():
         wav_path = Path(row["File Path"])
-        feats    = extract_feats(wav_path, sr, n_mfcc, frame_len, hop_len, n_mels)
+        feats    = extract_features(wav_path, sr, n_mfcc, frame_len, hop_len, n_mels)
         scores   = [models[e].score(feats) for e in emotions]
         pred     = int(np.argmax(scores))
         y_true.append(label_map[row["Emotion"]])
@@ -111,7 +89,7 @@ def evaluate_vocal_hmms(cfg: dict):
     y_true, y_pred = [], []
     for _, row in test_df.iterrows():
         wav_path = Path(row["File Path"])
-        feats    = extract_feats(wav_path, sr, n_mfcc, frame_len, hop_len, n_mels)
+        feats    = extract_features(wav_path, sr, n_mfcc, frame_len, hop_len, n_mels)
         scores   = [models[c].score(feats) for c in channels]
         pred     = int(np.argmax(scores))
         y_true.append(label_map[row["Vocal Channel"]])

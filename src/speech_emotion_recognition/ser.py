@@ -5,6 +5,7 @@ from .data_parser import parse_all
 from .feature_extraction import preprocess_all
 from .train import train_emotion_hmms, train_vocal_hmms
 from .eval import evaluate_emotion_hmms, evaluate_vocal_hmms
+from .data_download import download_dataset
 
 @click.group()
 @click.option(
@@ -18,6 +19,32 @@ def cli(ctx, config):
     """Speech‑Emotion Recognition CLI."""
     with open(config, "rb") as f:
         ctx.obj = tomli.load(f)
+
+@cli.command()
+@click.option(
+        "--type", "-t",
+        type=click.Choice(["song", "speech","both"], case_sensitive=False),
+        default="both",
+        help="Type of data to download: 'song', 'speech', or 'both'"
+)
+@click.pass_context
+def download(ctx, type):
+    """Download the dataset and extract it into `raw_data_dir`."""
+    cfg = ctx.obj
+    type = type.lower()
+    url_song = cfg["download"]["url_song"]
+    url_speech = cfg["download"]["url_speech"]
+
+    if type == "song":
+        download_dataset(url_song, cfg)
+    elif type == "speech":
+        download_dataset(url_speech, cfg)
+    else:
+        download_dataset(url_speech, cfg)
+        download_dataset(url_song, cfg)
+    
+    
+
 
 @cli.command()
 @click.pass_context

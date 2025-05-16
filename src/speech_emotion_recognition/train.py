@@ -4,7 +4,7 @@ import soundfile as sf
 import librosa
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from .feature_extraction import extract_feats
+from .feature_extraction import extract_features
 from hmmlearn import hmm
 import joblib
 
@@ -41,7 +41,7 @@ def train_emotion_hmms(cfg: dict):
     seqs, lengths, labels = [], [], []
     for _, row in train_df.iterrows():
         wav_path = Path(row["File Path"])
-        feats = extract_feats(wav_path, sr, n_mfcc, frame_len, hop_len, n_mels)
+        feats = extract_features(wav_path, sr, n_mfcc, frame_len, hop_len, n_mels)
         seqs.append(feats)
         lengths.append(feats.shape[0])
         labels.append(label_map[row["Emotion"]])
@@ -102,7 +102,7 @@ def train_vocal_hmms(cfg: dict):
     seqs, lengths, labels = [], [], []
     for _, row in train_df.iterrows():
         wav_path = Path(row["File Path"])
-        feats = extract_feats(wav_path, sr, n_mfcc, frame_len, hop_len, n_mels)
+        feats = extract_features(wav_path, sr, n_mfcc, frame_len, hop_len, n_mels)
         seqs.append(feats)
         lengths.append(feats.shape[0])
         labels.append(label_map[row["Vocal Channel"]])
