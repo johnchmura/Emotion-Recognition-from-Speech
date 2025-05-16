@@ -13,7 +13,7 @@ This package provides end‑to‑end data parsing, preprocessing, feature extrac
 
 ---
 
-## 📦 Installation
+## Installation
 
 1. **Clone the repository**  
    ```bash
@@ -35,7 +35,7 @@ This package provides end‑to‑end data parsing, preprocessing, feature extrac
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 All paths and hyperparameters live in `config.toml` at the project root:
 
@@ -62,7 +62,7 @@ Feel free to tweak sampling rate, MFCC settings, or HMM states and iterations.
 
 ---
 
-## 🚀 Usage
+## Usage
 
 After installation, you have a single CLI entrypoint:  
 
@@ -121,7 +121,7 @@ ser eval --mode vocal
 
 ---
 
-## 🔍 Model Methodology
+## Model Methodology
 
 1. **Filename Parsing**  
    - RAVDESS filenames (e.g. `03-01-06-02-02-02-15.wav`) are split into fields:  
@@ -150,7 +150,7 @@ ser eval --mode vocal
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 speech_emotion_recognition/
@@ -169,7 +169,7 @@ speech_emotion_recognition/
 
 ---
 
-## 🧪 Testing
+## Testing
 
 Use pytest for unit tests:
 
@@ -180,6 +180,6 @@ pytest
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
