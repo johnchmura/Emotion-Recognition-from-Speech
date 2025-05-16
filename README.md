@@ -43,8 +43,12 @@ cleaned_csv      = "data/cleaned_data.csv"
 models_dir       = "models"
 
 [download]
-speech_url = "https://zenodo.org/record/.../Audio_Speech_Actors_01-24.zip?download=1"
-song_url   = "https://zenodo.org/record/.../Audio_Song_Actors_01-24.zip?download=1"
+url_song = "https://zenodo.org/records/1188976/files/Audio_Song_Actors_01-24.zip?download=1"
+url_speech = "https://zenodo.org/records/1188976/files/Audio_Speech_Actors_01-24.zip?download=1"
+
+[hmm]
+n_states = 5
+n_iter   = 30
 
 [mfcc]
 sr        = 16000
@@ -52,10 +56,6 @@ n_mfcc    = 13
 frame_len = 0.025
 hop_len   = 0.010
 n_mels    = 40
-
-[hmm]
-n_states = 5
-n_iter   = 30
 ```
 
 Adjust any of these settings as needed.
