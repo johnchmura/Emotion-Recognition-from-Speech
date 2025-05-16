@@ -1,7 +1,3 @@
-Thought for a couple of seconds
-
-<!-- README.md -->
-
 # Speech Emotion & Vocal‑Channel Recognition
 
 A Python toolkit for training and evaluating **Hidden Markov Models** (HMMs) on speech data to perform:
