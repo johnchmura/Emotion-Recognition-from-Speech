@@ -31,32 +31,63 @@ def add_noise(audio: np.ndarray, noise_factor: float = 0.005) -> np.ndarray:
     aug   = audio + noise_factor * noise
     return aug / (np.max(np.abs(aug)) + 1e-9)
 
+def volume_perturb(audio: np.ndarray, vol_range: tuple[float,float]) -> np.ndarray:
+    factor = random.uniform(*vol_range)
+    aug    = audio * factor
+    return aug / (np.max(np.abs(aug)) + 1e-9)
 
 def time_stretch(audio: np.ndarray, rate: float) -> np.ndarray:
     """Speed up or slow down without changing pitch."""
-    return librosa.effects.time_stretch(audio, rate)
+    return librosa.effects.time_stretch(audio, rate = rate)
 
 
 def pitch_shift(audio: np.ndarray, sr: int, n_steps: float) -> np.ndarray:
     """Shift pitch by n_steps semitones."""
     return librosa.effects.pitch_shift(audio, sr=sr, n_steps=n_steps)
 
+def time_shift(audio: np.ndarray, max_shift_sec: float, sr: int) -> np.ndarray:
+    max_shift = int(max_shift_sec * sr)
+    shift     = random.randint(-max_shift, max_shift)
+    return np.roll(audio, shift)
 
-def augment_audio(audio: np.ndarray,sr: int,noise_prob: float = 0.5,noise_factor: float = 0.005,stretch_prob: float = 0.5,
-    stretch_range: tuple[float,float] = (0.9, 1.1),pitch_prob: float = 0.5,pitch_steps: tuple[float,float] = (-2, 2)) -> np.ndarray:
+def augment_audio(audio: np.ndarray,sr: int,noise_prob: float= 0.9,noise_range: tuple[float,float]= (0.01, 0.05),stretch_prob: float= 0.8,
+    stretch_range: tuple[float,float] = (0.8, 1.2),pitch_prob: float = 0.8,pitch_range: tuple[float,float] = (-5, 5),volume_prob: float     = 0.7,
+    volume_range: tuple[float,float] = (0.7, 1.3),shift_prob: float= 0.5,shift_max_sec: float = 0.2,reverse_prob: float    = 0.3
+) -> np.ndarray:
     """
-    Randomly apply noise, time‑stretch, and/or pitch‑shift to an utterance.
+    Stronger augmentation including:
+      - Gaussian noise
+      - Time-stretch
+      - Pitch-shift
+      - Volume scaling
+      - Time shift
+      - Random reversal
     """
     aug = audio.copy()
+
+    if random.random() < reverse_prob:
+        aug = aug[::-1]
+
     if random.random() < noise_prob:
-        aug = add_noise(aug, noise_factor)
+        nf = random.uniform(*noise_range)
+        aug = add_noise(aug, nf)
+
     if random.random() < stretch_prob:
         rate = random.uniform(*stretch_range)
-        aug = time_stretch(aug, rate)
+        aug  = time_stretch(aug, rate)
+
     if random.random() < pitch_prob:
-        steps = random.uniform(*pitch_steps)
-        aug = pitch_shift(aug, sr, steps)
+        steps = random.uniform(*pitch_range)
+        aug   = pitch_shift(aug, sr, steps)
+
+    if random.random() < volume_prob:
+        aug   = volume_perturb(aug, volume_range)
+
+    if random.random() < shift_prob:
+        aug   = time_shift(aug, shift_max_sec, sr)
+
     return aug
+
 
 
 def extract_features(wav_path: Path,sr: int = 16_000,n_mfcc: int = 13,frame_len: float = 0.025,hop_len: float = 0.010,n_mels: int = 40,

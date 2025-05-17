@@ -4,10 +4,9 @@ import soundfile as sf
 import librosa
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from .feature_extraction import extract_features
+from .feature_extraction import augment_audio, extract_features
 from hmmlearn import hmm
 import joblib
-
 
 def train_emotion_hmms(cfg: dict):
     """

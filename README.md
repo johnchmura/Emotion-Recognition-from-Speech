@@ -133,7 +133,7 @@ ser eval --mode vocal
 
 ---
 
-## 🔍 Methodology
+## Methodology
 
 1. **Filename Parsing**:  
    Extract metadata from RAVDESS filenames into `cleaned_data.csv`.
