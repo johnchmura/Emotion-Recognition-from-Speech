@@ -10,6 +10,8 @@ This package provides end‑to‑end data download, parsing, preprocessing, feat
 HMM accuracy for overall speech/song classification: 88.3%
 HMM accuracy for overall emotion classification 36.86% 
 
+Using the RAVDESS audio dataset
+
 ---
 ## HMM Architecture
 
