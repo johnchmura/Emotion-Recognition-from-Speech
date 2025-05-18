@@ -9,7 +9,7 @@ url_song = "https://zenodo.org/records/1188976/files/Audio_Song_Actors_01-24.zip
 url_speech = "https://zenodo.org/records/1188976/files/Audio_Speech_Actors_01-24.zip?download=1"
 
 [hmm]
-n_states = 5
+n_states = 10
 n_iter   = 30
 
 [mfcc]

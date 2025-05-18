@@ -3,6 +3,74 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 import librosa
+import numpy as np
+from hmmlearn import hmm
+
+def select_optimal_states(X_cat, lengths, D, state_list, n_iter=30):
+    """
+    Grid‑search over `state_list` of hidden‑state counts.
+    Returns dict with best_n_states by AIC and BIC, plus full table.
+
+    Args:
+      X_cat   : np.ndarray, shape (N_frames, D) — all frames stacked
+      lengths : list[int]      — sequence lengths per utterance
+      D       : int            — feature dimension
+      state_list : list[int]   — e.g. [2,3,5,7,10]
+      n_iter  : int            — EM max iterations
+
+    Returns:
+      {
+        "aic":    best_n_states_for_AIC,
+        "bic":    best_n_states_for_BIC,
+        "results": [
+           { "n_states": k,
+             "logL":    ℓ,
+             "p":       num_params,
+             "AIC":     aic,
+             "BIC":     bic
+           }, …
+        ]
+      }
+    """
+    N = X_cat.shape[0]
+    results = []
+
+    for k in state_list:
+        # fit HMM
+        model = hmm.GaussianHMM(
+            n_components=k,
+            covariance_type="diag",
+            n_iter=n_iter,
+            tol=1e-4,
+            verbose=False
+        )
+        model.fit(X_cat, lengths)
+        logL = model.score(X_cat, lengths)
+
+        # count parameters:
+        #   initial probs: (k−1)
+        #   transitions: k*(k−1)
+        #   emissions: means k*D + variances k*D
+        p = (k - 1) + k*(k - 1) + 2*k*D
+
+        # compute AIC & BIC
+        aic = -2 * logL + 2 * p
+        bic = -2 * logL + p * np.log(N)
+
+        results.append({
+            "n_states": k,
+            "logL":     logL,
+            "p":        p,
+            "AIC":      aic,
+            "BIC":      bic
+        })
+        print(f"States={k}: logL={logL:.1f}, p={p}, AIC={aic:.1f}, BIC={bic:.1f}")
+
+    # pick minima
+    best_aic = min(results, key=lambda r: r["AIC"])["n_states"]
+    best_bic = min(results, key=lambda r: r["BIC"])["n_states"]
+
+    return {"aic": best_aic, "bic": best_bic, "results": results}
 
 def preprocess_audio(path: str,target_sr: int = 16_000,eps: float = 1e-9,pre_emphasis: float = 0.97) -> np.ndarray:
     """
@@ -55,7 +123,6 @@ def augment_audio(audio: np.ndarray,sr: int,noise_prob: float= 0.9,noise_range: 
     volume_range: tuple[float,float] = (0.7, 1.3),shift_prob: float= 0.5,shift_max_sec: float = 0.2,reverse_prob: float    = 0.3
 ) -> np.ndarray:
     """
-    Stronger augmentation including:
       - Gaussian noise
       - Time-stretch
       - Pitch-shift
