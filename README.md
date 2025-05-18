@@ -7,6 +7,9 @@ A Python toolkit for training and evaluating **Hidden Markov Models** (HMMs) on 
 
 This package provides end‑to‑end data download, parsing, preprocessing, feature extraction, model training and evaluation via a single CLI entrypoint `ser`.
 
+HMM accuracy for overall speech/song classification: 88.3%
+HMM accuracy for overall emotion classification 36.86% 
+
 ---
 ## HMM Architecture
 
